@@ -22,18 +22,16 @@ architecture behavior of main is
 
 begin
 
-
-
 -- Test Point One appears on P1-6.
 	TP1 <= CK;
 	
 -- Test Point Two appears on P1-3.
-	TP2 <= CK;
+	TP2 <= '1';
 	
 -- Test Point Three appears on P1-2.
-	TP3 <= CK;
+	TP3 <= '0';
 
 -- Test Point Four appears on P1-8.
-	TP4 <= CK;
+	TP4 <= 'Z';
 	
 end behavior;
