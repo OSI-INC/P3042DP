@@ -2,6 +2,11 @@
 
 -- V1.1 [24-AUG-22] Starting point for development. Defines inputs and outputs.
 
+-- V2.1 [25-AUG-22] All lamps and swithes connected and tested.
+
+-- V2.2 [25-AUG-22] Adding combinatorial logic to permit lighting patterns controlled
+-- by switches. Add to_std_logic function.
+
 library ieee;  
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -47,11 +52,41 @@ end;
 
 architecture behavior of main is
 
+-- to_sdt_logic is a function that takes a boolean variable and returns
+-- a variable of type std_ulogic, which is compatible with std_logic as
+-- well. Examples of its use in code below.
+	function to_std_logic (v: boolean) return std_ulogic is
+	begin if v then return('1'); else return('0'); end if; end function;
+
 begin
 
-CH1 <= '1';
+-- Standard logic inputs can take values 0 and 1 for logic LO and HI -- respectively. But they can also assume values Z for high-impedance
+-- L for weak pull-down, H for week pull-up, and a few other values.
+-- So it's not clear what the logical AND operator will do when given
+-- two std_logic inputs. Here's the simplest way to perform combinatorial
+-- logic on std_logic signals. We compare the signal to one of its
+-- possible values, and in so doing generate a boolean result TRUE or
+-- FALSE. We apply boolean operators to the boolean values thus 
+-- generated, obtain a boolean result, and convert it into a std_logic
+-- value '0' if false, '1' if true.
+CH1 <= to_std_logic((HIDE = '1') and (SHOW = '1'));
 
-CH2 <= '1';
+-- Another way to deal with std_logic is to create a "process". Within
+-- a process we are allowed to use "if then else end if". In the 
+-- declaration of the process we must name at least one signal that
+-- acts as an input to the calculation. You might think we should list
+-- all signals that act as inputs, but the compiler won't give you an
+-- error if you fail to list them all. In this example, there is only
+-- one input: CONFIG. You might as why we can't use "if" statements
+-- outside of a process. It's a question. I don't know the answer.
+CH2_Generator : process (CONFIG) is
+begin
+	if CONFIG = '1' then
+		CH2 <= '1';
+	else
+		CH2 <= '0';
+	end if;
+end process;
 
 CH3 <= '1';
 
