@@ -7,6 +7,9 @@
 -- V2.2 [25-AUG-22] Adding combinatorial logic to permit lighting patterns controlled
 -- by switches. Add to_std_logic function.
 
+-- V2.3 [28-AUG-22] Fix git merge failures. Remove old explanatory comment. Add state 
+-- machines.
+
 library ieee;  
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -52,28 +55,16 @@ end;
 
 architecture behavior of main is
 
--- to_sdt_logic is a function that takes a boolean variable and returns
--- a variable of type std_ulogic, which is compatible with std_logic as
--- well. Examples of its use in code below.
+-- Convert boolean to standar logic. We return '1' for 'true' and '0'
+-- for 'false'.
 	function to_std_logic (v: boolean) return std_ulogic is
 	begin if v then return('1'); else return('0'); end if; end function;
 
+-- Signals.
+	signal SCK : std_logic; -- Slow Clock
+
 begin
 
--- Standard logic inputs can take values 0 and 1 for logic LO and HI -- respectively. But they can also assume values Z for high-impedance
-<<<<<<< HEAD
--- L for weak pull-down, H for weak pull-up, and a few other values.
-=======
--- L for weak pull-down, H for week pull-up, and a few other values.
->>>>>>> 240b49a02d56972530e2221aac9cdcb66d2c1866
--- So it's not clear what the logical AND operator will do when given
--- two std_logic inputs. Here's the simplest way to perform combinatorial
--- logic on std_logic signals. We compare the signal to one of its
--- possible values, and in so doing generate a boolean result TRUE or
--- FALSE. We apply boolean operators to the boolean values thus 
--- generated, obtain a boolean result, and convert it into a std_logic
--- value '0' if false, '1' if true.
-<<<<<<< HEAD
 CH1_Generator : process (SHOW) is
 begin
 	if SHOW = '1' then
@@ -83,31 +74,15 @@ begin
 	end if;
 end process;
 
-CH2_Generator : process (HIDE) is
-begin
-	if HIDE = '1' then
-=======
-CH1 <= to_std_logic((HIDE = '1') and (SHOW = '1'));
-
--- Another way to deal with std_logic is to create a "process". Within
--- a process we are allowed to use "if then else end if". In the 
--- declaration of the process we must name at least one signal that
--- acts as an input to the calculation. You might think we should list
--- all signals that act as inputs, but the compiler won't give you an
--- error if you fail to list them all. In this example, there is only
--- one input: CONFIG. You might as why we can't use "if" statements
--- outside of a process. It's a question. I don't know the answer.
 CH2_Generator : process (CONFIG) is
 begin
 	if CONFIG = '1' then
->>>>>>> 240b49a02d56972530e2221aac9cdcb66d2c1866
 		CH2 <= '1';
 	else
 		CH2 <= '0';
 	end if;
 end process;
 
-<<<<<<< HEAD
 CH3_Generator : process (CONFIG) is
 begin
 	if CONFIG = '1' then
@@ -126,16 +101,6 @@ begin
 	end if;
 end process;
 
-
--- Another way to deal with std_logic is to create a "process". Within
--- a process we are allowed to use "if then else end if". In the 
--- declaration of the process we must name at least one signal that
--- acts as an input to the calculation. You might think we should list
--- all signals that act as inputs, but the compiler won't give you an
--- error if you fail to list them all. In this example, there is only
--- one input: CONFIG. You might ask why we can't use "if" statements
--- outside of a process. It's a question. I don't know the answer.
-
 CH5 <= to_std_logic((HIDE = '1') and (SHOW = '1'));
 
 CH6 <= to_std_logic((CONFIG = '1') and (RESET = '0'));
@@ -146,45 +111,88 @@ CH8 <= to_std_logic((HIDE = '1') and (RESET = '0'));
 
 CH9 <= to_std_logic((HIDE = '1') and (SHOW = '1') and (CONFIG = '1') and (RESET = '0'));
 
-CH10_Generator : process (SHOW) is
+-- Clock_Divider takes CK and divides by 8,000. On the assumption that CK
+-- is 80 MHz, this leaves us with 10 kHz, which we apply to the signal SCK.
+-- We list all the inputs to the process that must be monitored in order to
+-- determine the set of moments in time when the output might change. In our case
+-- the output changes only in response to CK. The value the output takes on
+-- may be a function of many other inputs to the process, but those inputs can
+-- never, on their own, provoke a change in CK. We're saying to the VHDL compiler
+-- that a change in CK is nesseccary for a change in the process outputs. We are
+-- not saying that a change in CK is sufficient.
+Clock_Divider : process (CK) is
+
+-- The divisor is a constant. Its value is used by the compiler, but is not stored
+-- anywhere in the logic.
+	constant divisor : integer := 8000;
+	
+-- The count will be implemented as a register with a number of bits sufficient to
+-- represent count's value range. The range 0..8191 is thirteen bits, because 2^13
+-- = 8191 + 1, and our counter counts up from zero.
+	variable count : integer range 0 to 8191;
+
 begin
-	if SHOW = '1' then
-		CH10 <= '0';
-	else
-		CH10 <= '1';
+
+-- There are two ways to get a process to update itself on the rising edge of
+-- a clock. One is with the rising_edge command, which we use here. Another is
+-- with the "wait" command, which we can do another time.
+	if rising_edge(CK) then
+	
+		-- We count up to divisor minus one, then go back to zero. The "count"
+		-- is not a "variable", not a "signal". The compiler decyphers our 
+		-- logic sequentially. Later statements override earlier statements when
+		-- they conflict. With signals, the value the compiler uses for the 
+		-- signal remains the same throughout our logic equations as the compiler
+		-- tries to figure out what the next value of the signal should be. For
+		-- variables, the compiler allows us to change the value of the variable
+		-- as it proceeds through the equations. We use "<=" to update signal
+		-- values, to remind us that the value of the signal will not be updated
+		-- during our written equations, and ":=" to remind us that it will be
+		-- updated. Suppose x is zero at the beginning of our "if" statement. 
+		-- If x is a signal, we can say "x <= x + 8; x <= x + 1;" and x will be set
+		-- to 1. If x is a variable, we can say "x := x + 8; x := x + 1" and x
+		-- will be sset to 9.
+		if count = divisor - 1 then
+			count := 0;
+		else
+			count := count + 1;
+		end if;
+		
+		-- If our counter is less than half the divisor, let our slow
+		-- clock, SCK, be zero, otherwise it's one.
+		if count <= divisor / 2 then
+			SCK <= '0';
+		else
+			SCK <= '1';
+		end if;
 	end if;
 end process;
 
-CH11_Generator : process (HIDE) is
+-- We are going to make lamps CH10 to CH15 flash with a pattern. We define
+-- a local variable that is a register of bits as opposed to an integer.
+Lamp_Controller : process (SCK) is
+	variable count : std_logic_vector(13 downto 0);
 begin
-	if HIDE = '1' then
-		CH11 <= '0';
-	else
-		CH11 <= '1';
-	end if;
+
+	-- Here we convert the register of bits to an integer, add one, and
+	-- convert back into a register of bits. These type conversions are
+	-- a feature of VHDL that make the code verbose, but also help us
+	-- find errors.
+	if rising_edge(SCK) then
+		count := std_logic_vector(unsigned(count)+1);	end if;
+	
+	-- Because count is a register of std_logic bits, we can assign the
+	-- available lamp outputs to individual bits. We can put this logic
+	-- inside the "if rising edge" statement or outside. The difference
+	-- in the compiled code can be significant, but in this case there 
+	-- will be no difference.
+	CH15 <= count(13);
+	CH14 <= count(12);
+	CH13 <= count(11);
+	CH12 <= count(10);
+	CH11 <= count(9);
+	CH10 <= count(8);
 end process;
-
-CH12_Generator : process (CONFIG) is
-begin
-	if CONFIG = '1' then
-		CH12 <= '0';
-	else
-		CH12 <= '1';
-	end if;
-end process;
-
-CH13_Generator : process (RESET) is
-begin
-	if RESET = '1' then
-		CH13 <= '0';
-	else
-		CH13 <= '1';
-	end if;
-end process;
-
-CH14 <= to_std_logic((HIDE = '1') and (CONFIG = '1'));
-
-CH15 <= to_std_logic((RESET = '0') and (SHOW = '1'));
 
 UPLOAD <= to_std_logic((HIDE = '1') and (SHOW = '1') and (CONFIG = '1') and (RESET = '1'));
 
@@ -193,41 +201,6 @@ EMPTY <= to_std_logic((HIDE = '0') and (SHOW = '0') and (CONFIG = '0') and (RESE
 ACTIV <= to_std_logic((HIDE = '1') or (SHOW = '1'));
 
 DMERR <= to_std_logic((CONFIG = '1') or (RESET = '0'));
-=======
-CH3 <= '1';
-
-CH4 <= '1';
-
-CH5 <= '1';
-
-CH6 <= '1';
-
-CH7 <= '1';
-
-CH8 <= '1';
-
-CH9 <= '1';
-
-CH10 <= '1';
-
-CH11 <= '1';
-
-CH12 <= '1';
-
-CH13 <= '1';
-
-CH14 <= '1';
-
-CH15 <= '1';
-
-UPLOAD <= '1';
-
-EMPTY <= '1';
-
-ACTIV <= '1';
-
-DMERR <= '1';
->>>>>>> 240b49a02d56972530e2221aac9cdcb66d2c1866
 
 SHOWLED <= SHOW;
 
