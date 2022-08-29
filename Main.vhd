@@ -65,51 +65,6 @@ architecture behavior of main is
 
 begin
 
-CH1_Generator : process (SHOW) is
-begin
-	if SHOW = '1' then
-		CH1 <= '1';
-	else
-		CH1 <= '0';
-	end if;
-end process;
-
-CH2_Generator : process (CONFIG) is
-begin
-	if CONFIG = '1' then
-		CH2 <= '1';
-	else
-		CH2 <= '0';
-	end if;
-end process;
-
-CH3_Generator : process (CONFIG) is
-begin
-	if CONFIG = '1' then
-		CH3 <= '1';
-	else
-		CH3 <= '0';
-	end if;
-end process;
-
-CH4_Generator : process (RESET) is
-begin
-	if RESET = '1' then
-		CH4 <= '1';
-	else
-		CH4 <= '0';
-	end if;
-end process;
-
-CH5 <= to_std_logic((HIDE = '1') and (SHOW = '1'));
-
-CH6 <= to_std_logic((CONFIG = '1') and (RESET = '0'));
-
-CH7 <= to_std_logic((SHOW = '1') and (CONFIG = '1'));
-
-CH8 <= to_std_logic((HIDE = '1') and (RESET = '0'));
-
-CH9 <= to_std_logic((HIDE = '1') and (SHOW = '1') and (CONFIG = '1') and (RESET = '0'));
 
 -- Clock_Divider takes CK and divides by 8,000. On the assumption that CK
 -- is 80 MHz, this leaves us with 10 kHz, which we apply to the signal SCK.
@@ -152,12 +107,11 @@ begin
 		-- If x is a signal, we can say "x <= x + 8; x <= x + 1;" and x will be set
 		-- to 1. If x is a variable, we can say "x := x + 8; x := x + 1" and x
 		-- will be sset to 9.
-		if count = divisor - 1 then
-			count := 0;
-		else
-			count := count + 1;
-		end if;
-		
+			if count = divisor - 1 then
+				count := 0;
+			else
+				count := count + 1;
+			end if;
 		-- If our counter is less than half the divisor, let our slow
 		-- clock, SCK, be zero, otherwise it's one.
 		if count <= divisor / 2 then
@@ -167,6 +121,11 @@ begin
 		end if;
 	end if;
 end process;
+
+
+
+
+
 
 -- We are going to make lamps CH10 to CH15 flash with a pattern. We define
 -- a local variable that is a register of bits as opposed to an integer.
@@ -178,21 +137,118 @@ begin
 	-- convert back into a register of bits. These type conversions are
 	-- a feature of VHDL that make the code verbose, but also help us
 	-- find errors.
-	if rising_edge(SCK) then
-		count := std_logic_vector(unsigned(count)+1);	end if;
+	
+		if rising_edge(SCK) then
+			if SHOW = '0' then
+				count := std_logic_vector(unsigned(count)+1);
+			else
+				count := std_logic_vector(unsigned(count)-1);
+			end if;		end if;
 	
 	-- Because count is a register of std_logic bits, we can assign the
 	-- available lamp outputs to individual bits. We can put this logic
 	-- inside the "if rising edge" statement or outside. The difference
 	-- in the compiled code can be significant, but in this case there 
 	-- will be no difference.
-	CH15 <= count(13);
-	CH14 <= count(12);
-	CH13 <= count(11);
-	CH12 <= count(10);
-	CH11 <= count(9);
-	CH10 <= count(8);
+	
+
+	if (unsigned(count) >= 0) and (unsigned(count) < 500) then
+		CH1 <= '1';
+	else
+		CH1 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 500) and (unsigned(count) < 1000) then
+		CH2 <= '1';
+	else
+		CH2 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 1000) and (unsigned(count) < 1500) then
+		CH3 <= '1';
+	else
+		CH3 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 1500) and (unsigned(count) < 2000) then
+		CH4 <= '1';
+	else
+		CH4 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 2000) and (unsigned(count) < 2500) then
+		CH5 <= '1';
+	else
+		CH5 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 2500) and (unsigned(count) < 3000) then
+		CH6 <= '1';
+	else
+		CH6 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 3000) and (unsigned(count) < 3500) then
+		CH7 <= '1';
+	else
+		CH7 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 3500) and (unsigned(count) < 4000) then
+		CH8 <= '1';
+	else
+		CH8 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 4000) and (unsigned(count) < 4500) then
+		CH9 <= '1';
+	else
+		CH9 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 4500) and (unsigned(count) < 5000) then
+		CH10 <= '1';
+	else
+		CH10 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 5000) and (unsigned(count) < 5500) then
+		CH11 <= '1';
+	else
+		CH11 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 5500) and (unsigned(count) < 6000) then
+		CH12 <= '1';
+	else
+		CH12 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 6000) and (unsigned(count) < 6500) then
+		CH13 <= '1';
+	else
+		CH13 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 6500) and (unsigned(count) < 7000) then
+		CH14 <= '1';
+	else
+		CH14 <= '0';
+	end if;
+	
+	if (unsigned(count) >= 7000) and (unsigned(count) < 7500) then
+		CH15 <= '1';
+	else
+		CH15 <= '0';
+	end if;
+	
+
+	
 end process;
+
+
+	
+
 
 UPLOAD <= to_std_logic((HIDE = '1') and (SHOW = '1') and (CONFIG = '1') and (RESET = '1'));
 
