@@ -1,0 +1,14 @@
+#Start recording tcl command: 8/24/2022 21:50:07
+#Project Location: C:/Kevan/A3042/P3042DP; Project name: P3042DP
+prj_project new -name "P3042DP" -impl "impl1" -dev LCMXO2-2000ZE-1TG100C -synthesis "synplify"
+prj_src add "C:/Kevan/A3042/P3042DP/Main.vhd"
+prj_project save
+prj_run Synthesis -impl impl1
+prj_run Synthesis -impl impl1
+prj_run Synthesis -impl impl1
+prj_run Synthesis -impl impl1
+prj_run Synthesis -impl impl1
+prj_run Export -impl impl1
+prj_run Export -impl impl1
+prj_run PAR -impl impl1 -task IOTiming
+#Stop recording: 8/24/2022 22:32:17

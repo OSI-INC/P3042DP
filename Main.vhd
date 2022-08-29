@@ -61,7 +61,11 @@ architecture behavior of main is
 begin
 
 -- Standard logic inputs can take values 0 and 1 for logic LO and HI -- respectively. But they can also assume values Z for high-impedance
+<<<<<<< HEAD
 -- L for weak pull-down, H for weak pull-up, and a few other values.
+=======
+-- L for weak pull-down, H for week pull-up, and a few other values.
+>>>>>>> 240b49a02d56972530e2221aac9cdcb66d2c1866
 -- So it's not clear what the logical AND operator will do when given
 -- two std_logic inputs. Here's the simplest way to perform combinatorial
 -- logic on std_logic signals. We compare the signal to one of its
@@ -69,6 +73,7 @@ begin
 -- FALSE. We apply boolean operators to the boolean values thus 
 -- generated, obtain a boolean result, and convert it into a std_logic
 -- value '0' if false, '1' if true.
+<<<<<<< HEAD
 CH1_Generator : process (SHOW) is
 begin
 	if SHOW = '1' then
@@ -81,12 +86,28 @@ end process;
 CH2_Generator : process (HIDE) is
 begin
 	if HIDE = '1' then
+=======
+CH1 <= to_std_logic((HIDE = '1') and (SHOW = '1'));
+
+-- Another way to deal with std_logic is to create a "process". Within
+-- a process we are allowed to use "if then else end if". In the 
+-- declaration of the process we must name at least one signal that
+-- acts as an input to the calculation. You might think we should list
+-- all signals that act as inputs, but the compiler won't give you an
+-- error if you fail to list them all. In this example, there is only
+-- one input: CONFIG. You might as why we can't use "if" statements
+-- outside of a process. It's a question. I don't know the answer.
+CH2_Generator : process (CONFIG) is
+begin
+	if CONFIG = '1' then
+>>>>>>> 240b49a02d56972530e2221aac9cdcb66d2c1866
 		CH2 <= '1';
 	else
 		CH2 <= '0';
 	end if;
 end process;
 
+<<<<<<< HEAD
 CH3_Generator : process (CONFIG) is
 begin
 	if CONFIG = '1' then
@@ -172,6 +193,41 @@ EMPTY <= to_std_logic((HIDE = '0') and (SHOW = '0') and (CONFIG = '0') and (RESE
 ACTIV <= to_std_logic((HIDE = '1') or (SHOW = '1'));
 
 DMERR <= to_std_logic((CONFIG = '1') or (RESET = '0'));
+=======
+CH3 <= '1';
+
+CH4 <= '1';
+
+CH5 <= '1';
+
+CH6 <= '1';
+
+CH7 <= '1';
+
+CH8 <= '1';
+
+CH9 <= '1';
+
+CH10 <= '1';
+
+CH11 <= '1';
+
+CH12 <= '1';
+
+CH13 <= '1';
+
+CH14 <= '1';
+
+CH15 <= '1';
+
+UPLOAD <= '1';
+
+EMPTY <= '1';
+
+ACTIV <= '1';
+
+DMERR <= '1';
+>>>>>>> 240b49a02d56972530e2221aac9cdcb66d2c1866
 
 SHOWLED <= SHOW;
 
