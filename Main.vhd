@@ -20,7 +20,7 @@ entity main is
 		SHOW, -- SHOW button
 		HIDE, -- HIDE button
 		CONFIG, -- CONFIG button
-		RESET -- RESET button
+		LRST -- Local RESET button
 		: in std_logic; 
 		TP1, -- Test Point One (TMS)
 		TP2, -- Test Point Two (TDI)
@@ -49,9 +49,14 @@ entity main is
 		EMPTY, -- Empty
 		ACTIV, -- Active
 		DMERR -- Detector Module Error
-		: out std_logic
+		: out std_logic;
+		SDI, -- Serial Data INTO the Baseboard
+		SDO -- Serial Data OUT of the Baseboard
+		:inout std_logic
 	);
 end;
+
+
 
 architecture behavior of main is
 
@@ -62,6 +67,17 @@ architecture behavior of main is
 
 -- Signals.
 	signal SCK : std_logic; -- Slow Clock
+	signal DCK : std_logic; -- Double Clock
+	signal RESET : std_logic; -- RESET from button on dispaly panel or signal from baseboard
+	
+-- Base Board Interface
+	signal BBXMIT : boolean := false; -- Base Board Data Transmit 
+	signal BBRCV : boolean := false; -- Base Board Data Received
+	signal BBIR : boolean := false; -- Base Board Input Read
+	signal bb_in, bb_out : std_logic_vector(7 downto 0);
+	signal BBXDONE : boolean := false; -- Final bit in BBXMIT
+	signal BBRCNT : boolean := false; -- Baseboard Receiver Continue
+	signal CH1F, CH2F, CH3F, CH4F, CH5F, CH6F, CH7F, CH8F, CH9F, CH10F, CH11F, CH12F, CH13F, CH14F,CH15F : boolean := false; --when to flash LEDs
 
 begin
 
@@ -79,7 +95,7 @@ Clock_Divider : process (CK) is
 
 -- The divisor is a constant. Its value is used by the compiler, but is not stored
 -- anywhere in the logic.
-	constant divisor : integer := 8000;
+	constant divisor : integer := 80;
 	
 -- The count will be implemented as a register with a number of bits sufficient to
 -- represent count's value range. The range 0..8191 is thirteen bits, because 2^13
@@ -123,140 +139,393 @@ begin
 end process;
 
 
+Double_Clock_Divider : process (CK) is
 
+-- The divisor is a constant. Its value is used by the compiler, but is not stored
+-- anywhere in the logic.
+	constant divisor : integer := 20;
+	
+-- The count will be implemented as a register with a number of bits sufficient to
+-- represent count's value range. The range 0..8191 is thirteen bits, because 2^13
+-- = 8191 + 1, and our counter counts up from zero.
+	variable count : integer range 0 to 8191;
 
-
-
--- We are going to make lamps CH10 to CH15 flash with a pattern. We define
--- a local variable that is a register of bits as opposed to an integer.
-Lamp_Controller : process (SCK) is
-	variable count : std_logic_vector(13 downto 0);
 begin
 
-	-- Here we convert the register of bits to an integer, add one, and
-	-- convert back into a register of bits. These type conversions are
-	-- a feature of VHDL that make the code verbose, but also help us
-	-- find errors.
+-- There are two ways to get a process to update itself on the rising edge of
+-- a clock. One is with the rising_edge command, which we use here. Another is
+-- with the "wait" command, which we can do another time.
+	if rising_edge(CK) then
 	
-		if rising_edge(SCK) then
-			if SHOW = '0' then
-				count := std_logic_vector(unsigned(count)+1);
+		-- We count up to divisor minus one, then go back to zero. The "count"
+		-- is not a "variable", not a "signal". The compiler decyphers our 
+		-- logic sequentially. Later statements override earlier statements when
+		-- they conflict. With signals, the value the compiler uses for the 
+		-- signal remains the same throughout our logic equations as the compiler
+		-- tries to figure out what the next value of the signal should be. For
+		-- variables, the compiler allows us to change the value of the variable
+		-- as it proceeds through the equations. We use "<=" to update signal
+		-- values, to remind us that the value of the signal will not be updated
+		-- during our written equations, and ":=" to remind us that it will be
+		-- updated. Suppose x is zero at the beginning of our "if" statement. 
+		-- If x is a signal, we can say "x <= x + 8; x <= x + 1;" and x will be set
+		-- to 1. If x is a variable, we can say "x := x + 8; x := x + 1" and x
+		-- will be sset to 9.
+			if count = divisor - 1 then
+				count := 0;
 			else
-				count := std_logic_vector(unsigned(count)-1);
-			end if;		end if;
-	
-	-- Because count is a register of std_logic bits, we can assign the
-	-- available lamp outputs to individual bits. We can put this logic
-	-- inside the "if rising edge" statement or outside. The difference
-	-- in the compiled code can be significant, but in this case there 
-	-- will be no difference.
-	
-
-	if (unsigned(count) >= 0) and (unsigned(count) < 500) then
-		CH1 <= '1';
-	else
-		CH1 <= '0';
+				count := count + 1;
+			end if;
+		-- If our counter is less than half the divisor, let our slow
+		-- clock, SCK, be zero, otherwise it's one.
+		if count <= divisor / 2 then
+			DCK <= '0';
+		else
+			DCK <= '1';
+		end if;
 	end if;
-	
-	if (unsigned(count) >= 500) and (unsigned(count) < 1000) then
-		CH2 <= '1';
-	else
-		CH2 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 1000) and (unsigned(count) < 1500) then
-		CH3 <= '1';
-	else
-		CH3 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 1500) and (unsigned(count) < 2000) then
-		CH4 <= '1';
-	else
-		CH4 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 2000) and (unsigned(count) < 2500) then
-		CH5 <= '1';
-	else
-		CH5 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 2500) and (unsigned(count) < 3000) then
-		CH6 <= '1';
-	else
-		CH6 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 3000) and (unsigned(count) < 3500) then
-		CH7 <= '1';
-	else
-		CH7 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 3500) and (unsigned(count) < 4000) then
-		CH8 <= '1';
-	else
-		CH8 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 4000) and (unsigned(count) < 4500) then
-		CH9 <= '1';
-	else
-		CH9 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 4500) and (unsigned(count) < 5000) then
-		CH10 <= '1';
-	else
-		CH10 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 5000) and (unsigned(count) < 5500) then
-		CH11 <= '1';
-	else
-		CH11 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 5500) and (unsigned(count) < 6000) then
-		CH12 <= '1';
-	else
-		CH12 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 6000) and (unsigned(count) < 6500) then
-		CH13 <= '1';
-	else
-		CH13 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 6500) and (unsigned(count) < 7000) then
-		CH14 <= '1';
-	else
-		CH14 <= '0';
-	end if;
-	
-	if (unsigned(count) >= 7000) and (unsigned(count) < 7500) then
-		CH15 <= '1';
-	else
-		CH15 <= '0';
-	end if;
-	
-
-	
 end process;
 
 
+
+
+When_to_Reset : process (LRST) is
+begin
+	if LRST = '0' then
+		RESET <= '1';
+	else 
+		RESET <= 'Z';
+	end if;
+end process;
+
+When_to_Transmit : process (SCK,BBXDONE,SHOW) is
+variable state, next_state : integer range 0 to 63;
+begin	
+	if (RESET = '1') then
+		state := 0;
+		BBXMIT <= false;
+	elsif rising_edge (SCK) then
+		next_state := state;
+		
+		if (state = 0) then
+			if (SHOW = '1') or (CONFIG = '1') or (HIDE = '1') then
+				next_state := 1;
+				BBXMIT <= true;
+			else
+				next_state := 0;
+				BBXMIT <= false;
+			end if;
+		end if;
+		if (state = 1) then
+			BBXMIT <= true;
+			if BBXDONE then
+				next_state := 2;
+			else
+				next_state := 1;
+			end if;
+		end if;
+		if (state = 2) then
+			BBXMIT <= false;
+			if BBXDONE then
+				next_state := 2;
+			else
+				next_state := 0;
+			end if;
+		end if;
+		
+		
+
+		
+		if (SHOW = '1') then 
+			bb_out <= "01100010"; 
+		elsif (CONFIG = '1') then
+			bb_out <= "01100001"; 
+		elsif (HIDE = '1') then
+			bb_out <= "01100100"; 
+		else
+			bb_out <= "01100000";
+		end if;
+
+		state := next_state;
+	end if;
+	
+	
+	
+		
+end process;
+
+When_to_Recieve : process (SCK, RESET) is
+variable state, next_state : integer range 0 to 3;
+begin
+	if RESET = '1' then
+		state := 0;
+	elsif rising_edge (SCK) then
+		next_state := 0;
+		if state = 0 then
+			BBRCNT <= false;
+			if BBRCV then 
+				next_state := 1;
+			end if;
+		elsif state = 1 then
+			next_state := 2;
+		elsif state = 2 then
+			BBRCNT <= true;
+			if BBRCV then
+				next_state := 2;
+			end if;
+		end if;
+		
+		CH1F <= false;
+		CH2F <= false;
+		CH3F <= false;
+		CH4F <= false;
+		CH5F <= false;
+		CH6F <= false;
+		CH7F <= false;
+		CH8F <= false;
+		CH9F <= false;
+		CH10F <= false;
+		CH11F <= false;
+		CH12F <= false;
+		CH13F <= false;
+		CH14F <= false;
+		CH15F <= false;
+		
+		if state = 1 then
+			if (bb_in(7) = '0') and (bb_in(6) = '0') and (bb_in(5) = '0') and (bb_in(4) = '1') then
+				if (bb_in(3) = '0') and (bb_in(2) = '0') and (bb_in(1) = '0') and (bb_in(0) = '1') then
+					CH1F <= true;
+				end if;
+				if (bb_in(3) = '0') and (bb_in(2) = '0') and (bb_in(1) = '1') and (bb_in(0) = '0') then
+					CH2F <= true;
+				end if;
+				if (bb_in(3) = '0') and (bb_in(2) = '0') and (bb_in(1) = '1') and (bb_in(0) = '1') then
+					CH3F <= true;
+				end if;
+				if (bb_in(3) = '0') and (bb_in(2) = '1') and (bb_in(1) = '0') and (bb_in(0) = '0') then
+					CH4F <= true;
+				end if;
+				if (bb_in(3) = '0') and (bb_in(2) = '1') and (bb_in(1) = '0') and (bb_in(0) = '1') then
+					CH5F <= true;
+				end if;
+				if (bb_in(3) = '0') and (bb_in(2) = '1') and (bb_in(1) = '1') and (bb_in(0) = '0') then
+					CH6F <= true;
+				end if;
+				if (bb_in(3) = '0') and (bb_in(2) = '1') and (bb_in(1) = '1') and (bb_in(0) = '1') then
+					CH7F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '0') and (bb_in(1) = '0') and (bb_in(0) = '0') then
+					CH8F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '0') and (bb_in(1) = '0') and (bb_in(0) = '1') then
+					CH9F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '0') and (bb_in(1) = '1') and (bb_in(0) = '0') then
+					CH10F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '0') and (bb_in(1) = '1') and (bb_in(0) = '1') then
+					CH11F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '1') and (bb_in(1) = '0') and (bb_in(0) = '0') then
+					CH12F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '1') and (bb_in(1) = '0') and (bb_in(0) = '1') then
+					CH13F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '1') and (bb_in(1) = '1') and (bb_in(0) = '0') then
+					CH14F <= true;
+				end if;
+				if (bb_in(3) = '1') and (bb_in(2) = '1') and (bb_in(1) = '1') and (bb_in(0) = '1') then
+					CH1F <= true;
+				end if;
+			end if;
+		end if;
+		
+		state := next_state;
+	end if;
+end process;
+
+Channel_One_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH1F),
+			OUTPUT => CH1,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Two_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH2F),
+			OUTPUT => CH2,
+			RESET => RESET,
+			CK => SCK);
+			
+Channel_Three_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH3F),
+			OUTPUT => CH3,
+			RESET => RESET,
+			CK => SCK);
+			
+Channel_Four_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH4F),
+			OUTPUT => CH4,
+			RESET => RESET,
+			CK => SCK);
+			
+Channel_Five_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH5F),
+			OUTPUT => CH5,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Six_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH6F),
+			OUTPUT => CH6,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Seven_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH7F),
+			OUTPUT => CH7,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Eight_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH8F),
+			OUTPUT => CH8,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Nine_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH9F),
+			OUTPUT => CH9,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Ten_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH10F),
+			OUTPUT => CH10,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Eleven_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH11F),
+			OUTPUT => CH11,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Twelve_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH12F),
+			OUTPUT => CH12,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Thirteen_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH13F),
+			OUTPUT => CH13,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Fourteen_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH14F),
+			OUTPUT => CH14,
+			RESET => RESET,
+			CK => SCK);
+
+Channel_Fifteen_LED : entity Turn_Off_Delay port map (
+			INPUT => to_std_logic(CH15F),
+			OUTPUT => CH15,
+			RESET => RESET,
+			CK => SCK);
+
+Baseboard_Reciever : process (DCK, RESET) is
+variable state, next_state : integer range 0 to 48;
+variable SSDO : std_logic;
+begin
+	if falling_edge (DCK) then
+		SSDO := SDO;
+	end if;
+	if (RESET = '1') then
+		state:=0;
+		BBRCV <= false;
+		bb_in <= "00000000";
+	elsif rising_edge (DCK) then
+		next_state := 0;
+		BBRCV <= false;
+		if (state = 0) and (SSDO = '1') then
+			next_state := 1;
+		end if;
+		if (state > 0) and (state <48) then
+			next_state := state + 1;
+		end if;
+		if (state >= 48) and (not BBRCNT) then
+			next_state := 48;
+			BBRCV <= true;
+		elsif (state >= 48) and (BBRCNT) then
+			next_state:=0;
+		end if;
+	
+		case state is
+			when 5 => bb_in(7) <= SSDO;
+			when 9 => bb_in(6) <= SSDO;
+			when 13 => bb_in(5) <= SSDO;
+			when 17 => bb_in(4) <= SSDO;
+			when 21 => bb_in(3) <= SSDO;
+			when 25 => bb_in(2) <= SSDO;
+			when 29 => bb_in(1) <= SSDO;
+			when 33 => bb_in(0) <= SSDO;
+			when others => bb_in <= bb_in;
+		end case;
+		state := next_state;
+	end if;
+	
+	TP1 <= SSDO;
+		
+end process;
+
+
+Baseboard_Transmitter : process (SCK,RESET,BBXMIT) is
+variable state, next_state : integer range 0 to 12;
+begin	
+	if (RESET = '1') then
+		state:=0;
+	elsif rising_edge (SCK) then
+		next_state := state;
+		
+		if (state = 0) and BBXMIT then 
+			next_state := 1;
+		end if;
+		if (state > 0) and (state < 12) then
+			next_state := state + 1;
+		end if;
+		if (state >= 12) and (not BBXMIT) then
+			next_state := 0;
+		end if;
+		BBXDONE <= (state >=12);
+		
+		case state is
+			when 0 => SDI <= '0';
+			when 1 => SDI <= '0';
+			when 2 => SDI <= '0';
+			when 3 => SDI <= '1';
+			when 4 => SDI <= bb_out(7);
+			when 5 => SDI <= bb_out(6);
+			when 6 => SDI <= bb_out(5);
+			when 7 => SDI <= bb_out(4);
+			when 8 => SDI <= bb_out(3);
+			when 9 => SDI <= bb_out(2);
+			when 10 => SDI <= bb_out(1);
+			when 11 => SDI <= bb_out(0);
+			when 12 => SDI <= '0';
+		end case;
+	
+		state := next_state;
+	end if;
 	
 
+	BBXDONE <= (state=12);
+end process;
 
-UPLOAD <= to_std_logic((HIDE = '1') and (SHOW = '1') and (CONFIG = '1') and (RESET = '1'));
 
-EMPTY <= to_std_logic((HIDE = '0') and (SHOW = '0') and (CONFIG = '0') and (RESET = '0'));
 
-ACTIV <= to_std_logic((HIDE = '1') or (SHOW = '1'));
 
-DMERR <= to_std_logic((CONFIG = '1') or (RESET = '0'));
 
 SHOWLED <= SHOW;
 
@@ -266,16 +535,14 @@ CONFIGLED <= CONFIG;
 
 RESETLED <= RESET;
 
--- Test Point One appears on P1-6.
-	TP1 <= CK;
 	
 -- Test Point Two appears on P1-3.
-	TP2 <= '1';
+	TP2 <= SCK;
 	
 -- Test Point Three appears on P1-2.
-	TP3 <= '0';
+	TP3 <= DCK;
 
 -- Test Point Four appears on P1-8.
-	TP4 <= 'Z';
+	TP4 <= SDO;
 	
 end behavior;
