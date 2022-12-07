@@ -1,0 +1,8 @@
+#Start recording tcl command: 11/29/2022 10:28:08
+#Project Location: C:/Users/Nathan Sayer/Documents/OSI/TCB/P3042DP; Project name: TCBDM
+prj_project open "C:/Users/Nathan Sayer/Documents/OSI/TCB/P3042DP/TCBDM.ldf"
+pgr_project open "C:/Users/Nathan Sayer/Documents/OSI/TCB/P3042DP/TCBDM/TCBDM.xcf"
+pgr_program run
+pgr_project save "C:/Users/Nathan Sayer/Documents/OSI/TCB/P3042DP/TCBDM/TCBDM.xcf"
+prj_project close
+#Stop recording: 11/29/2022 10:37:00
