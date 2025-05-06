@@ -82,7 +82,9 @@ architecture behavior of main is
 	signal BBXDONE : boolean := false; -- Final bit in BBXMIT
 	signal BBXDONES : std_logic; -- BBXDONE sustained
 	signal BBRCNT : boolean := false; -- Baseboard Receiver Continue
-	signal CH1F, CH2F, CH3F, CH4F, CH5F, CH6F, CH7F, CH8F, CH9F, CH10F, CH11F, CH12F, CH13F, CH14F,CH15F, ACTF, UPF, EMPF, CONF : boolean := false; --when to flash LEDs
+	signal CH1F, CH2F, CH3F, CH4F, CH5F, CH6F, CH7F, CH8F, CH9F, 
+		CH10F, CH11F, CH12F, CH13F, CH14F,CH15F, ACTF, 
+		UPF, EMPF, CONF : boolean := false; --when to flash LEDs
 
 begin
 
@@ -97,44 +99,15 @@ begin
 -- that a change in CK is nesseccary for a change in the process outputs. We are
 -- not saying that a change in CK is sufficient.
 Clock_Divider : process (CK) is
-
--- The divisor is a constant. Its value is used by the compiler, but is not stored
--- anywhere in the logic.
-	constant divisor : integer := 80;
-	
--- The count will be implemented as a register with a number of bits sufficient to
--- represent count's value range. The range 0..8191 is thirteen bits, because 2^13
--- = 8191 + 1, and our counter counts up from zero.
-	variable count : integer range 0 to 8191;
-
+constant divisor : integer := 80;
+variable count : integer range 0 to 8191;
 begin
-
--- There are two ways to get a process to update itself on the rising edge of
--- a clock. One is with the rising_edge command, which we use here. Another is
--- with the "wait" command, which we can do another time.
 	if rising_edge(CK) then
-	
-		-- We count up to divisor minus one, then go back to zero. The "count"
-		-- is not a "variable", not a "signal". The compiler decyphers our 
-		-- logic sequentially. Later statements override earlier statements when
-		-- they conflict. With signals, the value the compiler uses for the 
-		-- signal remains the same throughout our logic equations as the compiler
-		-- tries to figure out what the next value of the signal should be. For
-		-- variables, the compiler allows us to change the value of the variable
-		-- as it proceeds through the equations. We use "<=" to update signal
-		-- values, to remind us that the value of the signal will not be updated
-		-- during our written equations, and ":=" to remind us that it will be
-		-- updated. Suppose x is zero at the beginning of our "if" statement. 
-		-- If x is a signal, we can say "x <= x + 8; x <= x + 1;" and x will be set
-		-- to 1. If x is a variable, we can say "x := x + 8; x := x + 1" and x
-		-- will be sset to 9.
 			if count = divisor - 1 then
 				count := 0;
 			else
 				count := count + 1;
 			end if;
-		-- If our counter is less than half the divisor, let our slow
-		-- clock, SCK, be zero, otherwise it's one.
 		if count <= divisor / 2 then
 			SCK <= '0';
 		else
@@ -145,44 +118,15 @@ end process;
 
 
 Double_Clock_Divider : process (CK) is
-
--- The divisor is a constant. Its value is used by the compiler, but is not stored
--- anywhere in the logic.
-	constant divisor : integer := 20;
-	
--- The count will be implemented as a register with a number of bits sufficient to
--- represent count's value range. The range 0..8191 is thirteen bits, because 2^13
--- = 8191 + 1, and our counter counts up from zero.
-	variable count : integer range 0 to 8191;
-
+constant divisor : integer := 20;
+variable count : integer range 0 to 8191;
 begin
-
--- There are two ways to get a process to update itself on the rising edge of
--- a clock. One is with the rising_edge command, which we use here. Another is
--- with the "wait" command, which we can do another time.
 	if rising_edge(CK) then
-	
-		-- We count up to divisor minus one, then go back to zero. The "count"
-		-- is not a "variable", not a "signal". The compiler decyphers our 
-		-- logic sequentially. Later statements override earlier statements when
-		-- they conflict. With signals, the value the compiler uses for the 
-		-- signal remains the same throughout our logic equations as the compiler
-		-- tries to figure out what the next value of the signal should be. For
-		-- variables, the compiler allows us to change the value of the variable
-		-- as it proceeds through the equations. We use "<=" to update signal
-		-- values, to remind us that the value of the signal will not be updated
-		-- during our written equations, and ":=" to remind us that it will be
-		-- updated. Suppose x is zero at the beginning of our "if" statement. 
-		-- If x is a signal, we can say "x <= x + 8; x <= x + 1;" and x will be set
-		-- to 1. If x is a variable, we can say "x := x + 8; x := x + 1" and x
-		-- will be sset to 9.
 			if count = divisor - 1 then
 				count := 0;
 			else
 				count := count + 1;
 			end if;
-		-- If our counter is less than half the divisor, let our slow
-		-- clock, SCK, be zero, otherwise it's one.
 		if count <= divisor / 2 then
 			DCK <= '0';
 		else
@@ -192,44 +136,15 @@ begin
 end process;
 
 Tenth_Clock_Divider : process (CK) is
-
--- The divisor is a constant. Its value is used by the compiler, but is not stored
--- anywhere in the logic.
-	constant divisor : integer := 800;
-	
--- The count will be implemented as a register with a number of bits sufficient to
--- represent count's value range. The range 0..8191 is thirteen bits, because 2^13
--- = 8191 + 1, and our counter counts up from zero.
-	variable count : integer range 0 to 8191;
-
+constant divisor : integer := 800;
+variable count : integer range 0 to 8191;
 begin
-
--- There are two ways to get a process to update itself on the rising edge of
--- a clock. One is with the rising_edge command, which we use here. Another is
--- with the "wait" command, which we can do another time.
 	if rising_edge(CK) then
-	
-		-- We count up to divisor minus one, then go back to zero. The "count"
-		-- is not a "variable", not a "signal". The compiler decyphers our 
-		-- logic sequentially. Later statements override earlier statements when
-		-- they conflict. With signals, the value the compiler uses for the 
-		-- signal remains the same throughout our logic equations as the compiler
-		-- tries to figure out what the next value of the signal should be. For
-		-- variables, the compiler allows us to change the value of the variable
-		-- as it proceeds through the equations. We use "<=" to update signal
-		-- values, to remind us that the value of the signal will not be updated
-		-- during our written equations, and ":=" to remind us that it will be
-		-- updated. Suppose x is zero at the beginning of our "if" statement. 
-		-- If x is a signal, we can say "x <= x + 8; x <= x + 1;" and x will be set
-		-- to 1. If x is a variable, we can say "x := x + 8; x := x + 1" and x
-		-- will be sset to 9.
-			if count = divisor - 1 then
+		if count = divisor - 1 then
 				count := 0;
 			else
 				count := count + 1;
 			end if;
-		-- If our counter is less than half the divisor, let our slow
-		-- clock, SCK, be zero, otherwise it's one.
 		if count <= divisor / 2 then
 			TCK <= '0';
 		else
@@ -278,11 +193,7 @@ begin
 		end if;
 		state := next_state;
 	end if;
-
 end process;
-
-
-
 
 When_to_Reset : process (LRST, DMRST) is
 begin
@@ -301,12 +212,12 @@ begin
 end process;
 
 BBXDONE_Sustain : entity Turn_Off_Delay port map (
-			INPUT => to_std_logic(BBXDONE),
-			OUTPUT => BBXDONES,
-			RESET => RESET,
-			SHOW => '0',
-			HIDE => '1',
-			CK => TCK);
+	INPUT => to_std_logic(BBXDONE),
+	OUTPUT => BBXDONES,
+	RESET => RESET,
+	SHOW => '0',
+	HIDE => '1',
+	CK => TCK);
 
 When_to_Transmit : process (SCK,BBXDONE,SHOW, CONFIG, HIDE, RESET) is
 variable state, next_state : integer range 0 to 63;
@@ -337,9 +248,6 @@ begin
 			end if;
 		end if;
 		
-		
-
-		
 		if (SHOW = '1') then 
 			bb_out(1) <= '1';
 		else
@@ -361,14 +269,9 @@ begin
 		bb_out(5) <= '1';
 		bb_out(4) <= '0';
 		bb_out(3) <= '0';
-		
 
 		state := next_state;
 	end if;
-	
-	
-	
-		
 end process;
 
 Lamp_Controller : process (SCK, RESET) is
@@ -460,6 +363,7 @@ begin
 					CH15F <= true;
 				end if;
 			end if;
+			
 			if opcode = 2 then
 				if bb_in(3) = '1' then
 					CONF <= true;
@@ -673,9 +577,6 @@ begin
 		end case;
 		state := next_state;
 	end if;
-	
-	TP1 <= SSDO;
-		
 end process;
 
 
@@ -731,23 +632,14 @@ begin
 	end if;
 end process;
 
-
 HIDELED <= HIDEH;
-
 CONFIGLED <= CONFIG;
-
 RESETLED <= RESET;
-
 SHOWLED <= SHOW;
 
-	
--- Test Point Two appears on P1-3.
-	TP2 <= SDO;
-	
--- Test Point Three appears on P1-2.
-	TP3 <= TCK;
-
--- Test Point Four appears on P1-8.
-	TP4 <= SDI;
+TP1 <= SCK;
+TP2 <= SDO;
+TP3 <= TCK;
+TP4 <= SDI;
 	
 end behavior;

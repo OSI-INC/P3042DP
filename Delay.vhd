@@ -16,9 +16,6 @@ begin
 Sustain: process (RESET, CK, SHOW) is
 	variable count, next_count : integer range 0 to max_count;
 	begin
-		if HIDE = '1' then
-			count := max_count;
-		end if;
 		if ((RESET = '1') or (INPUT = '1') or (SHOW = '1')) and (HIDE = '0') then
 			OUTPUT <= '1';
 			count := 0;
